@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 from datetime import *
 
-token = '8242607343:AAFw_2O5UfJBxBnZe5YquaZ38_rY_4Uhah0'
+token = 'Токен телеграмм бота'
 bot = telebot.TeleBot(token)
 
 hello_message = "Вас приветствует электронный дневник"
