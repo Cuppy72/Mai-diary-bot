@@ -1,13 +1,28 @@
+import json
+
 import telebot
 from telebot import types
+
 from datetime import *
+
+import sys
+import subprocess
+
+from telebot.types import InlineKeyboardMarkup
+
+from parsing_script import falling_process
 
 token = 'Токен телеграмм бота'
 bot = telebot.TeleBot(token)
 
 hello_message = "Вас приветствует электронный дневник"
 name_of_diary_message = "студента МАИ!"
-chose_week_message = "*Выберете учебный день*"
+chose_week_message = "<b>Выберете учебный день</b>"
+
+Title_message = hello_message + '\n' + name_of_diary_message.rjust(
+    len(hello_message) + 1) + '\n\n' + chose_week_message.rjust(len(hello_message) + 6)
+
+homework_name = "Домашнее задание на "
 
 now_day = date.today().day
 now_month = date.today().month
@@ -18,11 +33,23 @@ current_month = now_month
 current_year = now_year
 
 name_of_day = {0: "Понедельник", 1: "Вторник", 2: "Среда", 3: "Четверг", 4: "Пятница", 5: "Суббота", 6: "Воскресенье"}
+name_of_day_in_accusative_case = {
+    0: "Понедельник", 1: "Вторник", 2: "Среду", 3: "Четверг", 4: "Пятницу", 5: "Субботу", 6: "Воскресенье"
+}
+
 weeks_dict = {}
+
+subprocess.run([sys.executable, 'parsing_script.py'])
+
+with open("schedule.json", "r", encoding='utf-8') as schedule_file:
+    schedule_date = json.load(schedule_file)
 
 button_for_left_week = types.InlineKeyboardButton(text="⬅️", callback_data="prev_week")
 button_for_right_week = types.InlineKeyboardButton(text="➡️", callback_data="next_week")
 button_for_current_week = types.InlineKeyboardButton(text="🏠", callback_data="current_week")
+button_back = types.InlineKeyboardButton(text='Вернуться назад', callback_data='back')
+
+create_or_edit = False
 
 
 def create_button(current_date):
@@ -104,23 +131,26 @@ def create_week_list(day, month):
 
 @bot.message_handler(commands=['start'])
 def start_hello_message(message):
+    global create_or_edit
     keyboard = types.InlineKeyboardMarkup()
 
-    start_day, start_month = start_of_the_week(now_day, now_month)
+    start_day, start_month = start_of_the_week(current_day, current_month)
     week_list = create_week_list(start_day, start_month)
 
     for i in week_list:
         keyboard.add(i)
     keyboard.add(button_for_left_week, button_for_current_week, button_for_right_week)
-
-    bot.send_message(message.chat.id, hello_message + '\n' + name_of_diary_message.rjust(len(hello_message) + 1) +
-                     '\n\n' + chose_week_message.rjust(len(hello_message) + 1), parse_mode='Markdown',
-                     reply_markup=keyboard)
-
+    if create_or_edit:
+        bot.edit_message_text(Title_message, chat_id=message.chat.id, message_id=message.message_id,
+                              parse_mode='HTML', reply_markup=keyboard)
+        create_or_edit = False
+    else:
+        bot.send_message(message.chat.id, Title_message, parse_mode='HTML',
+                         reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: True)
 def week_buttons(call):
-    global current_day, current_month, current_year
+    global current_day, current_month, current_year, create_or_edit
     if call.data == 'prev_week':
 
         keyboard = types.InlineKeyboardMarkup()
@@ -156,20 +186,41 @@ def week_buttons(call):
         bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                       reply_markup=keyboard)
     elif call.data == 'current_week':
-        current_year = now_year
 
-        keyboard = types.InlineKeyboardMarkup()
+        if start_of_the_week(now_day, now_month) == start_of_the_week(current_day, current_month):
+            bot.answer_callback_query(call.id)
+        else:
+            current_year = now_year
+            current_month = now_month
+            current_day = now_day
 
-        day, month = start_of_the_week(now_day, now_month)
+            create_or_edit = True
+            start_hello_message(call.message)
 
-        week_list = create_week_list(day, month)
+    elif call.data != 'back':
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(button_back)
 
-        for i in week_list:
-            keyboard.add(i)
-        keyboard.add(button_for_left_week, button_for_current_week, button_for_right_week)
+        callback_year, callback_month, callback_day = [int(x) for x in call.data.split('-')]
+        accusative_case = name_of_day_in_accusative_case[date(callback_year, callback_month, callback_day).weekday()]
 
-        bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=keyboard)
+        if falling_process:
+            all_text = '<i>Сервис временно недоступен(</i>'
+        else:
+            if schedule_date.get(call.data) is None:
+                all_text = f"Расписание на {accusative_case.lower()} отсутствует"
+            else:
+                all_text = f"<b>{homework_name}{accusative_case.lower()}:</b>\n"
+                for lesson_name in schedule_date[call.data]:
+                    all_text += '\n' + lesson_name + '\n'
+                    all_text += '<blockquote>Дз нет</blockquote>'
+                    all_text += '\n'
+                all_text = all_text.rstrip()
+        bot.edit_message_text(all_text, chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              reply_markup=keyboard, parse_mode='HTML')
+    else:
+        create_or_edit = True
+        start_hello_message(call.message)
 
 
 bot.infinity_polling()
