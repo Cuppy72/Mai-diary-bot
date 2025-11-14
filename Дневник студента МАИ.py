@@ -33,9 +33,8 @@ current_month = now_month
 current_year = now_year
 
 name_of_day = {0: "Понедельник", 1: "Вторник", 2: "Среда", 3: "Четверг", 4: "Пятница", 5: "Суббота", 6: "Воскресенье"}
-name_of_day_in_accusative_case = {
-    0: "Понедельник", 1: "Вторник", 2: "Среду", 3: "Четверг", 4: "Пятницу", 5: "Субботу", 6: "Воскресенье"
-}
+name_of_day_accusative_case = {0: "понедельник", 1: "вторник", 2: "среду", 3: "четверг", 4: "пятницу", 5: "субботу",
+                               6: "воскресенье"}
 
 weeks_dict = {}
 
@@ -148,43 +147,29 @@ def start_hello_message(message):
         bot.send_message(message.chat.id, Title_message, parse_mode='HTML',
                          reply_markup=keyboard)
 
+
 @bot.callback_query_handler(func=lambda call: True)
 def week_buttons(call):
     global current_day, current_month, current_year, create_or_edit
     if call.data == 'prev_week':
 
-        keyboard = types.InlineKeyboardMarkup()
+        current_day, current_month = start_of_the_week(current_day, current_month)
+        current_day, current_month = date_decrease(current_day, current_month)
 
-        day, month = start_of_the_week(current_day, current_month)
-        day, month = date_decrease(day, month)
+        current_day, current_month = start_of_the_week(current_day, current_month)
 
-        start_day_of_the_week, start_month_of_the_week = start_of_the_week(day, month)
-
-        week_list = create_week_list(start_day_of_the_week, start_month_of_the_week)
-
-        for i in week_list:
-            keyboard.add(i)
-        keyboard.add(button_for_left_week, button_for_current_week, button_for_right_week)
-
-        bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=keyboard)
+        create_or_edit = True
+        start_hello_message(call.message)
 
     elif call.data == 'next_week':
 
-        keyboard = types.InlineKeyboardMarkup()
-
-        day, month = start_of_the_week(current_day, current_month)
+        current_day, current_month = start_of_the_week(current_day, current_month)
         for _ in range(7):
-            day, month = date_increase(day, month)
+            current_day, current_month = date_increase(current_day, current_month)
 
-        week_list = create_week_list(day, month)
+        create_or_edit = True
+        start_hello_message(call.message)
 
-        for i in week_list:
-            keyboard.add(i)
-        keyboard.add(button_for_left_week, button_for_current_week, button_for_right_week)
-
-        bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=keyboard)
     elif call.data == 'current_week':
 
         if start_of_the_week(now_day, now_month) == start_of_the_week(current_day, current_month):
@@ -201,21 +186,20 @@ def week_buttons(call):
         keyboard = InlineKeyboardMarkup()
         keyboard.add(button_back)
 
-        callback_year, callback_month, callback_day = [int(x) for x in call.data.split('-')]
-        accusative_case = name_of_day_in_accusative_case[date(callback_year, callback_month, callback_day).weekday()]
-
         if falling_process:
             all_text = '<i>Сервис временно недоступен(</i>'
         else:
+            formating = "%Y-%m-%d"
+            name_of_chose_day = name_of_day_accusative_case[datetime.strptime(call.data, formating).weekday()]
             if schedule_date.get(call.data) is None:
-                all_text = f"Расписание на {accusative_case.lower()} отсутствует"
+                all_text = f"<b><i>Расписание на {name_of_chose_day} отсутствует</i></b>"
             else:
-                all_text = f"<b>{homework_name}{accusative_case.lower()}:</b>\n"
-                for lesson_name in schedule_date[call.data]:
-                    all_text += '\n' + lesson_name + '\n'
-                    all_text += '<blockquote>Дз нет</blockquote>'
-                    all_text += '\n'
-                all_text = all_text.rstrip()
+                lessons_list = schedule_date[call.data]['lessons_name']
+                all_text = f"<b>Расписание на {name_of_chose_day}</b>\n\n"
+
+                for name_of_lesson in lessons_list:
+                    all_text += name_of_lesson + '\n' + '<blockquote>Дз нет</blockquote>' + '\n\n'
+
         bot.edit_message_text(all_text, chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=keyboard, parse_mode='HTML')
     else:

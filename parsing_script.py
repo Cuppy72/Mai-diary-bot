@@ -43,15 +43,25 @@ if not flag_read:
         parse_date = eval(req.text)
         schedule = {}
 
-        for i in parse_date.items():
-            if i[0] != 'group':
-                date = '-'.join(i[0].split('.')[::-1])
-                if i[-1] != name_group:
-                    for j in i[-1]["pairs"].values():
+        for current_date in parse_date:
+            if current_date != 'group':
+                date = '-'.join(current_date.split('.')[::-1])
+                name_day = parse_date[current_date]["day"]
+
+                for time_start in parse_date[current_date]["pairs"]:
+                    for lesson_name in parse_date[current_date]["pairs"][time_start]:
+
+                        start_lesson_time = parse_date[current_date]["pairs"][time_start][lesson_name]['time_start'][
+                            :-3]
+                        end_lesson_time = parse_date[current_date]["pairs"][time_start][lesson_name]['time_end'][:-3]
+                        lesson_name = f"{lesson_name}\n<i>( {start_lesson_time} - {end_lesson_time} )</i>"
+
                         if schedule.get(date) is None:
-                            schedule[date] = list(j.keys())
+                            schedule[date] = {'lessons_name': [lesson_name]}
                         else:
-                            schedule[date].append(*j.keys())
+                            schedule[date]['lessons_name'].append(lesson_name)
+
+
 
         with open("schedule.json", 'w', encoding='utf-8') as file_schedule:
             json.dump(schedule, file_schedule, ensure_ascii=False, indent=4)
