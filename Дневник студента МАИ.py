@@ -12,7 +12,7 @@ from telebot.types import InlineKeyboardMarkup
 
 from parsing_script import falling_process
 
-token = 'Токен телеграмм бота'
+token = 'Токен телеграм бота'
 bot = telebot.TeleBot(token)
 
 hello_message = "Вас приветствует электронный дневник"
@@ -42,13 +42,13 @@ subprocess.run([sys.executable, 'parsing_script.py'])
 
 admin_list = {"Begemot_anatoliy"}
 
-with open("schedule.json", "r", encoding='utf-8') as schedule_file:
-    schedule_date = json.load(schedule_file)
-
 button_for_left_week = types.InlineKeyboardButton(text="⬅️", callback_data="prev_week")
 button_for_right_week = types.InlineKeyboardButton(text="➡️", callback_data="next_week")
 button_for_current_week = types.InlineKeyboardButton(text="🏠", callback_data="current_week")
 button_back = types.InlineKeyboardButton(text='Вернуться назад', callback_data='back')
+
+add_homework_to_date = None
+add_homework_to_lesson_name = None
 
 
 def create_button(current_date):
@@ -144,7 +144,8 @@ def data_load(username):
             all_users_date = json.load(data_file)
         all_users_date = create_new_user_info(username, all_users_date)
     except FileNotFoundError:
-        open("user_data.json", "w", encoding="utf-8")
+        create_file = open("user_data.json", "w", encoding="utf-8")
+        create_file.close()
         all_users_date = create_new_user_info(username, {})
     with open("user_data.json", "w", encoding="utf-8") as data_file:
         json.dump(all_users_date, data_file, ensure_ascii=False, indent=4)
@@ -174,7 +175,97 @@ def update_values(username):
 
 @bot.message_handler(commands=['add_homework'])
 def admin_panel(message):
-    pass
+    if message.from_user.username in admin_list:
+        bot.send_message(message.chat.id, "<i>Введите дату в формате год-месяц-день</i>", parse_mode="HTML")
+        bot.register_next_step_handler(message, group_num)
+
+
+def check_other_command(message):
+    if message.text == "/start":
+        return True
+    else:
+        return False
+
+
+def group_num(message):
+    global add_homework_to_date
+
+    if check_other_command(message):
+        start_hello_message(message)
+        return
+
+    input_date = message.text
+
+    try:
+        year, month, day = [int(i) for i in input_date.split("-")]
+        if current_date_valid(day, month, year) == False:
+            bot.send_message(message.chat.id, "<i><u>Некорректная дата. Попробуйте ещё раз</u></i>", parse_mode="HTML")
+            bot.register_next_step_handler(message, group_num)
+            return
+        else:
+            add_homework_to_date = input_date
+            bot.send_message(message.chat.id,
+                             "<i>Введите название предмета\n( Ввод может содержать хотя бы ключевое слово из названия )</i>",
+                             parse_mode="HTML")
+            bot.register_next_step_handler(message, lesson_name)
+    except ValueError:
+        bot.send_message(message.chat.id, "<i><u>Некорректная дата. Попробуйте ещё раз</u></i>", parse_mode="HTML")
+        bot.register_next_step_handler(message, group_num)
+        return
+
+
+def lesson_name(message):
+    global add_homework_to_lesson_name
+
+    if check_other_command(message):
+        start_hello_message(message)
+        return
+
+    input_name_lesson = message.text
+
+    with open("schedule.json", "r", encoding="utf-8") as schedule_dict:
+        schedule = json.load(schedule_dict)
+
+    flag = True
+    for lessons_on_day in schedule[add_homework_to_date]:
+        for name_lesson_on_day in lessons_on_day:
+            if input_name_lesson.lower() in name_lesson_on_day.lower():
+                add_homework_to_lesson_name = input_name_lesson
+                flag = False
+                break
+        if not flag:
+            break
+    else:
+        bot.send_message(message.chat.id, "<i><u>Название предмета введено некорректно. Попробуйте ещё раз</u></i>",
+                         parse_mode="HTML")
+        bot.register_next_step_handler(message, lesson_name)
+        return
+
+    add_homework_to_lesson_name = input_name_lesson
+    bot.send_message(message.chat.id, "<i>Введите домашнее задание</i>", parse_mode="HTML")
+    bot.register_next_step_handler(message, homework_from_admin)
+
+
+def homework_from_admin(message):
+    if check_other_command(message):
+        start_hello_message(message)
+        return
+
+    input_homework = message.text
+
+    with open('schedule.json', "r", encoding="utf-8") as add_homework_file:
+        current_schedule_and_homework = json.load(add_homework_file)
+
+    for lesson_dict in current_schedule_and_homework[add_homework_to_date]:
+        for name_lesson in lesson_dict:
+            if add_homework_to_lesson_name in name_lesson:
+                lesson_dict[name_lesson]["homework"] = input_homework
+
+    with open("schedule.json", "w", encoding="utf-8") as add_homework_file:
+        json.dump(current_schedule_and_homework, add_homework_file, ensure_ascii=False, indent=4)
+
+    bot.send_message(message.chat.id, "<i>Домашнее задание успешно добавлено</i>", parse_mode="HTML")
+
 
 @bot.message_handler(commands=['start'])
 def start_hello_message(message):
@@ -249,12 +340,14 @@ def week_buttons(call):
             current_month = now_month
             current_day = now_day
 
-        update_values(call.from_user.username)
-        repeat_hello_message(call)
+            update_values(call.from_user.username)
+            repeat_hello_message(call)
 
     elif call.data != 'back':
         keyboard = InlineKeyboardMarkup()
         keyboard.add(button_back)
+        with open("schedule.json", "r", encoding='utf-8') as schedule_file:
+            schedule_date = json.load(schedule_file)
 
         if falling_process:
             all_text = '<i>Сервис временно недоступен(</i>'
@@ -264,7 +357,7 @@ def week_buttons(call):
             if schedule_date.get(call.data) is None:
                 all_text = f"<b><i>Расписание на {name_of_chose_day} отсутствует</i></b>"
             else:
-                lessons_list = schedule_date[call.data]['lessons_name']
+                lessons_list = schedule_date[call.data]
                 all_text = f"<b>Расписание на {name_of_chose_day}</b>\n\n"
 
                 for current_lesson in lessons_list:

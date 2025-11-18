@@ -16,7 +16,8 @@ except json.decoder.JSONDecodeError:
     pass
 
 except FileNotFoundError:
-    open("schedule.json", "w", encoding='utf-8')
+    create_file = open("schedule.json", "w", encoding='utf-8')
+    create_file.close()
 
 if not flag_read:
 
@@ -59,9 +60,9 @@ if not flag_read:
                         homework = {"homework": "Домашнего задания нет"}
 
                         if schedule.get(date) is None:
-                            schedule[date] = {'lessons_name': [{lesson_name: homework}]}
+                            schedule[date] = [{lesson_name: homework}]
                         else:
-                            schedule[date]['lessons_name'].append({lesson_name: homework})
+                            schedule[date].append({lesson_name: homework})
 
 
 
