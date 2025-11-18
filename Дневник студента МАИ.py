@@ -40,6 +40,8 @@ weeks_dict = {}
 
 subprocess.run([sys.executable, 'parsing_script.py'])
 
+admin_list = {"Begemot_anatoliy"}
+
 with open("schedule.json", "r", encoding='utf-8') as schedule_file:
     schedule_date = json.load(schedule_file)
 
@@ -48,11 +50,9 @@ button_for_right_week = types.InlineKeyboardButton(text="➡️", callback_data=
 button_for_current_week = types.InlineKeyboardButton(text="🏠", callback_data="current_week")
 button_back = types.InlineKeyboardButton(text='Вернуться назад', callback_data='back')
 
-create_or_edit = False
-
 
 def create_button(current_date):
-    if weeks_dict.get(str(current_date)) is None:
+    if str(current_date) not in weeks_dict:
         button = types.InlineKeyboardButton(text=f"{name_of_day[current_date.weekday()]} - "
                                                  f"{str(current_date.day).rjust(2, '0')}."
                                                  f"{str(current_date.month).rjust(2, '0')}",
@@ -94,8 +94,8 @@ def date_increase(day, month):
     global current_year
     day += 1
     if current_date_valid(day, month, current_year) != False:
-
         return day, month
+
     else:
         day = 1
         month += 1
@@ -128,29 +128,99 @@ def create_week_list(day, month):
     return week
 
 
+def create_new_user_info(username, all_users_date):
+    if username not in all_users_date:
+        all_users_date[username] = {
+            "current_day": now_day,
+            "current_month": now_month,
+            "current_year": now_year
+        }
+    return all_users_date
+
+
+def data_load(username):
+    try:
+        with open("user_data.json", "r", encoding="utf-8") as data_file:
+            all_users_date = json.load(data_file)
+        all_users_date = create_new_user_info(username, all_users_date)
+    except FileNotFoundError:
+        open("user_data.json", "w", encoding="utf-8")
+        all_users_date = create_new_user_info(username, {})
+    with open("user_data.json", "w", encoding="utf-8") as data_file:
+        json.dump(all_users_date, data_file, ensure_ascii=False, indent=4)
+    return all_users_date[username]
+
+
+def data_update(username, **kwargs):
+    with open("user_data.json", "r", encoding="utf-8") as data_file:
+        all_users_date = json.load(data_file)
+    current_user_info = all_users_date[username]
+    for old_info in kwargs:
+        current_user_info[old_info] = kwargs[old_info]
+    all_users_date[username] = current_user_info
+    with open("user_data.json", "w", encoding="utf-8") as data_file:
+        json.dump(all_users_date, data_file, ensure_ascii=False, indent=4)
+
+    return current_user_info
+
+
+def update_values(username):
+    global current_day, current_month, current_year
+    current_day, current_month, current_year = data_update(username,
+                                                           current_day=current_day,
+                                                           current_month=current_month,
+                                                           current_year=current_year).values()
+
+
+@bot.message_handler(commands=['add_homework'])
+def admin_panel(message):
+    pass
+
 @bot.message_handler(commands=['start'])
 def start_hello_message(message):
-    global create_or_edit
+    global current_day, current_month, current_year
     keyboard = types.InlineKeyboardMarkup()
+    current_day, current_month, current_year = data_load(message.from_user.username).values()
+    current_day, current_month, current_year = data_update(message.from_user.username,
+                                                           current_day=now_day,
+                                                           current_month=now_month,
+                                                           current_year=now_year).values()
 
     start_day, start_month = start_of_the_week(current_day, current_month)
     week_list = create_week_list(start_day, start_month)
 
+    update_values(message.from_user.username)
+
     for i in week_list:
         keyboard.add(i)
     keyboard.add(button_for_left_week, button_for_current_week, button_for_right_week)
-    if create_or_edit:
-        bot.edit_message_text(Title_message, chat_id=message.chat.id, message_id=message.message_id,
-                              parse_mode='HTML', reply_markup=keyboard)
-        create_or_edit = False
-    else:
-        bot.send_message(message.chat.id, Title_message, parse_mode='HTML',
-                         reply_markup=keyboard)
+
+    bot.send_message(message.chat.id, Title_message, parse_mode='HTML',
+                     reply_markup=keyboard)
+
+
+def repeat_hello_message(call):
+    global current_day, current_month, current_year
+    keyboard = types.InlineKeyboardMarkup()
+    current_day, current_month, current_year = data_load(call.from_user.username).values()
+
+    start_day, start_month = start_of_the_week(current_day, current_month)
+    week_list = create_week_list(start_day, start_month)
+
+    update_values(call.from_user.username)
+
+    for i in week_list:
+        keyboard.add(i)
+    keyboard.add(button_for_left_week, button_for_current_week, button_for_right_week)
+
+    bot.edit_message_text(Title_message, chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          parse_mode='HTML', reply_markup=keyboard)
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def week_buttons(call):
-    global current_day, current_month, current_year, create_or_edit
+    global current_day, current_month, current_year
+    current_day, current_month, current_year = data_load(call.from_user.username).values()
     if call.data == 'prev_week':
 
         current_day, current_month = start_of_the_week(current_day, current_month)
@@ -158,8 +228,8 @@ def week_buttons(call):
 
         current_day, current_month = start_of_the_week(current_day, current_month)
 
-        create_or_edit = True
-        start_hello_message(call.message)
+        update_values(call.from_user.username)
+        repeat_hello_message(call)
 
     elif call.data == 'next_week':
 
@@ -167,8 +237,8 @@ def week_buttons(call):
         for _ in range(7):
             current_day, current_month = date_increase(current_day, current_month)
 
-        create_or_edit = True
-        start_hello_message(call.message)
+        update_values(call.from_user.username)
+        repeat_hello_message(call)
 
     elif call.data == 'current_week':
 
@@ -179,8 +249,8 @@ def week_buttons(call):
             current_month = now_month
             current_day = now_day
 
-            create_or_edit = True
-            start_hello_message(call.message)
+        update_values(call.from_user.username)
+        repeat_hello_message(call)
 
     elif call.data != 'back':
         keyboard = InlineKeyboardMarkup()
@@ -197,14 +267,17 @@ def week_buttons(call):
                 lessons_list = schedule_date[call.data]['lessons_name']
                 all_text = f"<b>Расписание на {name_of_chose_day}</b>\n\n"
 
-                for name_of_lesson in lessons_list:
-                    all_text += name_of_lesson + '\n' + '<blockquote>Дз нет</blockquote>' + '\n\n'
+                for current_lesson in lessons_list:
+                    for name_of_current_lesson in current_lesson:
+                        homework = current_lesson[name_of_current_lesson]["homework"]
+                        all_text += name_of_current_lesson + '\n' + f'<blockquote>{homework}</blockquote>' + '\n\n'
 
         bot.edit_message_text(all_text, chat_id=call.message.chat.id, message_id=call.message.message_id,
                               reply_markup=keyboard, parse_mode='HTML')
+
     else:
-        create_or_edit = True
-        start_hello_message(call.message)
+        update_values(call.from_user.username)
+        repeat_hello_message(call)
 
 
 bot.infinity_polling()

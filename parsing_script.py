@@ -56,10 +56,12 @@ if not flag_read:
                         end_lesson_time = parse_date[current_date]["pairs"][time_start][lesson_name]['time_end'][:-3]
                         lesson_name = f"{lesson_name}\n<i>( {start_lesson_time} - {end_lesson_time} )</i>"
 
+                        homework = {"homework": "Домашнего задания нет"}
+
                         if schedule.get(date) is None:
-                            schedule[date] = {'lessons_name': [lesson_name]}
+                            schedule[date] = {'lessons_name': [{lesson_name: homework}]}
                         else:
-                            schedule[date]['lessons_name'].append(lesson_name)
+                            schedule[date]['lessons_name'].append({lesson_name: homework})
 
 
 
