@@ -55,16 +55,19 @@ if not flag_read:
                         start_lesson_time = parse_date[current_date]["pairs"][time_start][lesson_name]['time_start'][
                             :-3]
                         end_lesson_time = parse_date[current_date]["pairs"][time_start][lesson_name]['time_end'][:-3]
-                        lesson_name = f"{lesson_name}\n<i>( {start_lesson_time} - {end_lesson_time} )</i>"
 
-                        homework = {"homework": "Домашнего задания нет"}
+                        type_lesson = None
+
+                        for current_type in parse_date[current_date]["pairs"][time_start][lesson_name]["type"]:
+                            type_lesson = current_type
+                        lesson_name = f"{lesson_name} <u><i>{type_lesson}</i></u>\n<i>( {start_lesson_time} - {end_lesson_time} )</i>"
+
+                        info_about_lesson = {"homework": "Домашнего задания нет", "type": type_lesson}
 
                         if schedule.get(date) is None:
-                            schedule[date] = [{lesson_name: homework}]
+                            schedule[date] = [{lesson_name: info_about_lesson}]
                         else:
-                            schedule[date].append({lesson_name: homework})
-
-
+                            schedule[date].append({lesson_name: info_about_lesson})
 
         with open("schedule.json", 'w', encoding='utf-8') as file_schedule:
             json.dump(schedule, file_schedule, ensure_ascii=False, indent=4)
