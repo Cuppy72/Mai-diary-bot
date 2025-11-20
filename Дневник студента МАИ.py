@@ -26,7 +26,7 @@ bot.set_my_commands(commands)
 
 hello_message = "Вас приветствует электронный дневник"
 name_of_diary_message = "студента МАИ!"
-chose_week_message = "<b>Выберете учебный день</b>"
+chose_week_message = "<b>Выберите учебный день</b>"
 
 Title_message = hello_message + '\n' + name_of_diary_message.rjust(
     len(hello_message) + 1) + '\n\n' + chose_week_message.rjust(len(hello_message) + 6)
@@ -66,11 +66,12 @@ button_for_right_week = types.InlineKeyboardButton(text="➡️", callback_data=
 button_for_current_week = types.InlineKeyboardButton(text="🏠", callback_data="current_week")
 button_back = types.InlineKeyboardButton(text='Вернуться назад', callback_data='back')
 
-add_homework_to_date = None
-add_homework_to_lesson_name = None
-add_homework_to_lesson_type = None
+homework_to_date = None
+homework_to_lesson_name = None
+homework_to_lesson_type = None
 
-add_homework_state = False
+homework_state = False
+delete_or_add_state = False
 
 
 def create_button(current_date):
@@ -202,34 +203,43 @@ def create_lesson_button(name_lesson, type_lesson):
     return button
 
 
+@bot.message_handler(commands=["del_homework"])
+def delete_choise_homework(message):
+    global delete_or_add_state
+    delete_or_add_state = True
+    admin_panel(message)
+    return
+
+
 @bot.message_handler(commands=["del_prev_homework"])
-def delete_homework(message):
-    global add_homework_to_date, add_homework_to_lesson_name
+def delete_prev_homework(message):
+    global homework_to_date, homework_to_lesson_name, homework_to_lesson_type
 
     if message.from_user.username in admin_list:
-        if add_homework_to_lesson_name is None and add_homework_to_date is None:
+        if homework_to_lesson_name is None and homework_to_date is None:
             bot.send_message(message.chat.id, "<u><i>В текущей сессии домашнее задание ещё не было добавлено</i></u>",
                              parse_mode="HTML")
         else:
             with open("schedule.json", "r", encoding="utf-8") as homework_file:
                 homework_dict = json.load(homework_file)
 
-            for choise_homework in homework_dict[add_homework_to_date]:
+            for choise_homework in homework_dict[homework_to_date]:
                 for name_choise_lesson in choise_homework:
-                    if add_homework_to_lesson_name in name_choise_lesson:
+                    if homework_to_lesson_name in name_choise_lesson and homework_to_lesson_type == \
+                            choise_homework[name_choise_lesson]["type"]:
                         choise_homework[name_choise_lesson]["homework"] = "Домашнего задания нет"
 
+            homework_to_lesson_name, homework_to_lesson_type, homework_to_date = None, None, None
             with open("schedule.json", "w", encoding="utf-8") as homework_file:
                 json.dump(homework_dict, homework_file, ensure_ascii=False, indent=4)
-
             bot.send_message(message.chat.id, "<i>Домашнее задание успешно удалено</i>", parse_mode="HTML")
     return
 
 
 @bot.message_handler(commands=["add_homework"])
 def admin_panel(message):
-    global add_homework_state
-    add_homework_state = True
+    global homework_state
+    homework_state = True
     if message.from_user.username in admin_list:
         bot.send_message(message.chat.id, "<i>Введите дату в формате год-месяц-день</i>", parse_mode="HTML")
         bot.register_next_step_handler(message, group_num)
@@ -237,16 +247,16 @@ def admin_panel(message):
 
 
 def admin_panel_quit(message):
-    global add_homework_state
-    add_homework_state = False
+    global homework_state
+    homework_state = False
     bot.clear_step_handler_by_chat_id(message.chat.id)
     bot.send_message(message.chat.id, "<i>Ввод домашнего задания прерван</i>", parse_mode="HTML")
     return
 
 
 def check_message(message):
-    global add_homework_state
-    add_homework_state = False
+    global homework_state
+    homework_state = False
     if check_other_command(message, edit=True):
         bot.clear_step_handler_by_chat_id(message.chat.id)
         bot.edit_message_text("<i>Ввод домашнего задания прерван</i>", chat_id=message.chat.id,
@@ -277,7 +287,7 @@ def check_other_command(message, edit=False):
 
 
 def group_num(message):
-    global add_homework_to_date
+    global homework_to_date
 
     if check_other_command(message):
         return
@@ -291,7 +301,7 @@ def group_num(message):
             bot.register_next_step_handler(message, group_num)
             return
         else:
-            add_homework_to_date = input_date
+            homework_to_date = input_date
             choise_lesson(message)
             return
     except ValueError:
@@ -302,12 +312,12 @@ def group_num(message):
 
 
 def choise_lesson(message):
-    global add_homework_to_lesson_name, bot_global_message_id
+    global homework_to_lesson_name, bot_global_message_id
 
     keyboard = types.InlineKeyboardMarkup()
     try:
         with open("schedule.json", "r", encoding="utf-8") as data_file:
-            full_name_lessons_on_input_date = json.load(data_file)[add_homework_to_date]
+            full_name_lessons_on_input_date = json.load(data_file)[homework_to_date]
     except KeyError:
         bot.send_message(message.chat.id, "<i><u>Расписание на выбранную дату отсутствует. Попробуйте ещё раз</u></i>",
                          parse_mode="HTML")
@@ -327,10 +337,14 @@ def choise_lesson(message):
             name_lesson = j
             type_lesson = i[j]
             keyboard.add(create_lesson_button(name_lesson, type_lesson))
-
-    bot_message = bot.send_message(message.chat.id, "Выберете предмет для добавления домашнего задания",
-                                   parse_mode='HTML',
-                                   reply_markup=keyboard)
+    if not delete_or_add_state:
+        bot_message = bot.send_message(message.chat.id, "Выберете предмет для добавления домашнего задания",
+                                       parse_mode='HTML',
+                                       reply_markup=keyboard)
+    else:
+        bot_message = bot.send_message(message.chat.id, "Выберете предмет для удаления домашнего задания",
+                                       parse_mode='HTML',
+                                       reply_markup=keyboard)
     bot_global_message_id = bot_message.message_id
     bot.register_next_step_handler(bot_message, check_message)
 
@@ -344,10 +358,10 @@ def homework_from_admin(message):
     with open('schedule.json', "r", encoding="utf-8") as add_homework_file:
         current_schedule_and_homework = json.load(add_homework_file)
 
-    for lesson_dict in current_schedule_and_homework[add_homework_to_date]:
+    for lesson_dict in current_schedule_and_homework[homework_to_date]:
         for name_lesson in lesson_dict:
-            if add_homework_to_lesson_name in name_lesson and lesson_dict[name_lesson][
-                "type"] == add_homework_to_lesson_type:
+            if homework_to_lesson_name in name_lesson and lesson_dict[name_lesson][
+                "type"] == homework_to_lesson_type:
                 lesson_dict[name_lesson]["homework"] = input_homework
 
     with open("schedule.json", "w", encoding="utf-8") as add_homework_file:
@@ -403,7 +417,8 @@ def repeat_hello_message(call):
 
 @bot.callback_query_handler(func=lambda call: True)
 def week_buttons(call):
-    global current_day, current_month, current_year, add_homework_to_lesson_name, add_homework_to_lesson_type
+    global current_day, current_month, current_year, homework_to_lesson_name, homework_to_lesson_type, homework_to_date
+    global delete_or_add_state
     bot.answer_callback_query(call.id)
     current_day, current_month, current_year = data_load(call.from_user.username).values()
 
@@ -472,17 +487,36 @@ def week_buttons(call):
         return
 
     else:
-        if add_homework_state:
+        if homework_state:
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
-            short_name_call_data, add_homework_to_lesson_type = call.data.split("-")
+            short_name_call_data, homework_to_lesson_type = call.data.split("-")
 
             for full_name in short_name_of_lessons:
                 if short_name_of_lessons[full_name] == short_name_call_data:
-                    add_homework_to_lesson_name = full_name
+                    homework_to_lesson_name = full_name
 
-            bot.send_message(call.message.chat.id, "<i>Введите домашнее задание</i>", parse_mode="HTML")
-            bot.register_next_step_handler(call.message, homework_from_admin)
-            return
+            if not delete_or_add_state:
+                bot.send_message(call.message.chat.id, "<i>Введите домашнее задание</i>", parse_mode="HTML")
+                bot.register_next_step_handler(call.message, homework_from_admin)
+                return
+            else:
+                with open('schedule.json', "r", encoding="utf-8") as add_homework_file:
+                    current_schedule_and_homework = json.load(add_homework_file)
+
+                for lesson_dict in current_schedule_and_homework[homework_to_date]:
+                    for name_lesson in lesson_dict:
+                        if homework_to_lesson_name in name_lesson and lesson_dict[name_lesson][
+                            "type"] == homework_to_lesson_type:
+                            lesson_dict[name_lesson]["homework"] = "Домашнего задания нет"
+
+                with open("schedule.json", "w", encoding="utf-8") as add_homework_file:
+                    json.dump(current_schedule_and_homework, add_homework_file, ensure_ascii=False, indent=4)
+
+                homework_to_date, homework_to_lesson_name, homework_to_lesson_type = None, None, None
+                delete_or_add_state = False
+
+                bot.send_message(call.message.chat.id, "<i>Домашнее задание успешно удалено</i>", parse_mode="HTML")
+                return
 
 
 bot.infinity_polling()
