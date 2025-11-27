@@ -8,7 +8,7 @@ falling_process = False
 name_group = 'М8О-113БВ-25'
 
 try:
-    with open("schedule.json", "r", encoding='utf-8') as file_schedule:
+    with open("databases/schedule.json", "r", encoding='utf-8') as file_schedule:
         schedule = json.load(file_schedule)
     flag_read = True
 
@@ -16,7 +16,7 @@ except json.decoder.JSONDecodeError:
     pass
 
 except FileNotFoundError:
-    create_file = open("schedule.json", "w", encoding='utf-8')
+    create_file = open("databases/schedule.json", "w", encoding='utf-8')
     create_file.close()
 
 if not flag_read:
@@ -69,5 +69,5 @@ if not flag_read:
                         else:
                             schedule[date].append({lesson_name: info_about_lesson})
 
-        with open("schedule.json", 'w', encoding='utf-8') as file_schedule:
+        with open("databases/schedule.json", 'w', encoding='utf-8') as file_schedule:
             json.dump(schedule, file_schedule, ensure_ascii=False, indent=4)
