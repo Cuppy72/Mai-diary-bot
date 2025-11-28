@@ -60,7 +60,7 @@ subprocess.run([sys.executable, 'helpers_libs/parsing_script.py'])
 
 admin_list = {"Begemot_anatoliy", "Tketg"}
 
-bot_global_message_id = None
+bot_global_message_id = 0
 
 button_for_left_week = types.InlineKeyboardButton(text="⬅️", callback_data="prev_week")
 button_for_right_week = types.InlineKeyboardButton(text="➡️", callback_data="next_week")
@@ -168,8 +168,8 @@ def check_message(message):
     return
 
 
-def check_other_command(message, edit=False):
-    global homework_state, global_homework_state, delete_or_add_state
+def check_other_command(message, edit=False, delete=False):
+    global homework_state, global_homework_state, delete_or_add_state, bot_global_message_id
     message_from_user = message.text
     if message_from_user.startswith("/"):
         homework_state = False
@@ -178,74 +178,98 @@ def check_other_command(message, edit=False):
         bot.clear_step_handler_by_chat_id(message.chat.id)
         ac.homework_to_date, ac.homework_to_lesson_name, ac.homework_to_lesson_type = None, None, None
 
-        if message_from_user == "/start" and edit:
-            start_hello_message(message)
-            return True
-
-        elif message_from_user == "/start":
-            admin_panel_quit(message)
-            start_hello_message(message)
-            return True
-
-        elif message_from_user == "/add" and edit:
-            admin_panel(message)
+        if message_from_user == "/start":
+            if edit:
+                start_hello_message(message)
+            elif delete:
+                bot.delete_message(message.chat.id, bot_global_message_id)
+                admin_panel_quit(message)
+                start_hello_message(message)
+            else:
+                admin_panel_quit(message)
+                start_hello_message(message)
             return True
 
         elif message_from_user == "/add":
-            admin_panel_quit(message)
-            admin_panel(message)
-            return True
-
-        elif message_from_user == "/cancel" and edit:
+            if edit:
+                admin_panel(message)
+            elif delete:
+                bot.delete_message(message.chat.id, bot_global_message_id)
+                admin_panel_quit(message)
+                admin_panel(message)
+            else:
+                admin_panel_quit(message)
+                admin_panel(message)
             return True
 
         elif message_from_user == "/cancel":
-            admin_panel_quit(message)
-            return True
-
-        elif message_from_user == "/del" and edit:
-            delete_choise_homework(message)
+            if edit:
+                pass
+            elif delete:
+                bot.delete_message(message.chat.id, bot_global_message_id)
+                admin_panel_quit(message)
+            else:
+                admin_panel_quit(message)
             return True
 
         elif message_from_user == "/del":
-            admin_panel_quit(message)
-            delete_choise_homework(message)
-            return True
-
-        elif message_from_user == "/del_prev" and edit:
-            delete_prev_homework(message)
+            if edit:
+                delete_choise_homework(message)
+            elif delete:
+                bot.delete_message(message.chat.id, bot_global_message_id)
+                admin_panel_quit(message)
+                delete_choise_homework(message)
+            else:
+                admin_panel_quit(message)
+                delete_choise_homework(message)
             return True
 
         elif message_from_user == "/del_prev":
-            admin_panel_quit(message)
-            delete_prev_homework(message)
-            return True
-
-        elif message_from_user == '/global' and edit:
-            show_globals(message)
+            if edit:
+                delete_prev_homework(message)
+            elif delete:
+                bot.delete_message(message.chat.id, bot_global_message_id)
+                admin_panel_quit(message)
+                delete_prev_homework(message)
+            else:
+                admin_panel_quit(message)
+                delete_prev_homework(message)
             return True
 
         elif message_from_user == '/global':
-            admin_panel_quit(message)
-            show_globals(message)
-            return True
-
-        elif message_from_user == '/add_global' and edit:
-            create_start_panel_date(message)
+            if edit:
+                show_globals(message)
+            elif delete:
+                bot.delete_message(message.chat.id, bot_global_message_id)
+                admin_panel_quit(message)
+                show_globals(message)
+            else:
+                admin_panel_quit(message)
+                show_globals(message)
             return True
 
         elif message_from_user == '/add_global':
-            admin_panel_quit(message)
-            create_start_panel_date(message)
-            return True
-
-        elif message_from_user == '/help' and edit:
-            help_command(message)
+            if edit:
+                create_start_panel_date(message)
+            elif delete:
+                bot.delete_message(message.chat.id, bot_global_message_id)
+                admin_panel_quit(message)
+                create_start_panel_date(message)
+            else:
+                admin_panel_quit(message)
+                create_start_panel_date(message)
             return True
 
         elif message_from_user == '/help':
-            admin_panel_quit(message)
-            help_command(message)
+            if edit:
+                help_command(message)
+            elif delete:
+                bot.delete_message(message.chat.id, bot_global_message_id)
+                admin_panel_quit(message)
+                help_command(message)
+            else:
+                admin_panel_quit(message)
+                help_command(message)
             return True
 
     return False
@@ -315,7 +339,7 @@ def choise_lesson(message):
 
 def homework_from_admin(message, global_homework=False):
     global global_homework_state, homework_state
-    if check_other_command(message):
+    if check_other_command(message, delete=True):
         return
 
     add_homework(message.text, global_homework=global_homework)
@@ -482,9 +506,9 @@ def week_buttons(call):
 
             flag = delete_input()
             if not flag:
-                bot.send_message(call.message.chat.id,
-                                 "<i><u>Домашнее задание на выбранное занятие ещё не добавлено</u></i>",
-                                 parse_mode="HTML")
+                bot.edit_message_text("<i><u>Домашнее задание на выбранное занятие ещё не добавлено</u></i>",
+                                      chat_id=call.message.chat.id, message_id=bot_global_message_id,
+                                      parse_mode="HTML")
                 return
 
             ac.homework_to_date, ac.homework_to_lesson_name, ac.homework_to_lesson_type = None, None, None
@@ -492,7 +516,6 @@ def week_buttons(call):
 
             bot.send_message(call.message.chat.id, "<i>Домашнее задание успешно удалено</i>", parse_mode="HTML")
             return
-
 
 
 bot.infinity_polling()
