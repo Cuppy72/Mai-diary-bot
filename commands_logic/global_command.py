@@ -1,10 +1,21 @@
 import json
+from importlib.resources import read_text
+
+import commands_logic.add_command as ac
 
 from datetime import *
 from telebot import types
+from helpers_libs.weeks_operations import name_of_day
 
 formating = "%Y-%m-%d"
 many_all_lessons = set()
+
+global_dedline = None
+
+first_inisialisation = True
+
+month_date_dict = {12: "декабря", 1: "января", 2: "февраля", 3: "марта", 4: "апреля", 5: "мая", 6: "июня",
+                   7: "июля", 8: "августа", 9: "сентября", 10: "октября", 11: "ноября"}
 
 short_name_of_lessons = {"Программирование на языке Python": "Python", "Физическая культура": "Физра",
                          "Дискретная математика": "Дискретка", "Математический анализ": "Матан",
@@ -33,11 +44,11 @@ def create_button_for_global(text, callback):
     return button
 
 
-def create_start_panel():
-    global false_generator_index, many_all_lessons
-    many_all_lessons = set()
-    flag_start_week = False
+def create_many_all_lessons():
+    many = set()
     count_add_days = 0
+
+    flag_start_week = False
 
     with open("databases/schedule.json", "r", encoding="utf-8") as all_lessons_file:
         all_lessons = json.load(all_lessons_file)
@@ -49,13 +60,23 @@ def create_start_panel():
         if flag_start_week:
             for current_lesson in all_lessons[current_date]:
                 for name_lesson in current_lesson:
-                    many_all_lessons.add(
-                        f"{short_name_of_lessons[name_lesson[:name_lesson.find('<') - 1]]} {current_lesson[name_lesson]['type']}")
+                    many.add(
+                        f"{short_name_of_lessons[name_lesson[:name_lesson.find('<') - 1]]}")
             count_add_days += 1
-            if count_add_days == 24:
+            if count_add_days == 6:
                 break
 
-    many_all_lessons = sorted(many_all_lessons)
+    return sorted(many)
+
+
+def create_start_panel():
+    global false_generator_index, many_all_lessons, first_inisialisation
+
+    if first_inisialisation:
+        many_all_lessons = create_many_all_lessons()
+        first_inisialisation = False
+
+    false_generator_index = 0
 
     keyboard = types.InlineKeyboardMarkup()
 
@@ -96,3 +117,123 @@ def prev_panel():
         keyboard.add(button)
     keyboard.add(button_left_action, button_right_action)
     return keyboard
+
+
+def add_func_for_global_homework(text):
+    try:
+        with open('databases/global_homework.json', "r", encoding="utf-8") as add_global_homework_file:
+            global_homework_dict = json.load(add_global_homework_file)
+    except FileNotFoundError:
+        global_homework_dict = {ac.homework_to_lesson_name: [{"homework": text, "deadline": global_dedline}]}
+
+        with open("databases/global_homework.json", "w", encoding="utf-8") as add_global_homework_file:
+            json.dump(global_homework_dict, add_global_homework_file, ensure_ascii=False, indent=4)
+        return
+
+    if ac.homework_to_lesson_name in global_homework_dict:
+        global_homework_dict[ac.homework_to_lesson_name].append({"homework": text, "deadline": global_dedline})
+    else:
+        global_homework_dict[ac.homework_to_lesson_name] = [{"homework": text, "deadline": global_dedline}]
+
+    with open("databases/global_homework.json", "w", encoding="utf-8") as add_global_homework_file:
+        json.dump(global_homework_dict, add_global_homework_file, ensure_ascii=False, indent=4)
+    return
+
+
+def del_func_for_global_homework():
+    pass
+
+
+def auto_global_del(name, homework):
+    with open("databases/global_homework.json", "r", encoding="utf-8") as global_homework_file:
+        global_homework_dict = json.load(global_homework_file)
+
+    for name_lesson in global_homework_dict:
+        if name_lesson == name:
+            if len(global_homework_dict[name_lesson]) == 1:
+                del global_homework_dict[name_lesson]
+
+                with open("databases/global_homework.json", "w", encoding="utf-8") as global_homework_file:
+                    json.dump(global_homework_dict, global_homework_file, ensure_ascii=False, indent=4)
+
+                return
+            else:
+                for homeworks in global_homework_dict[name_lesson]:
+                    if homework in homeworks.values():
+                        global_homework_dict[name_lesson].remove(homeworks)
+
+                        with open("databases/global_homework.json", "w", encoding="utf-8") as global_homework_file:
+                            json.dump(global_homework_dict, global_homework_file, ensure_ascii=False, indent=4)
+
+                        return
+
+
+def deadline_name(date_input):
+    deadline_date_object = datetime.strptime(date_input, formating)
+    name_dedline_day = name_of_day[deadline_date_object.weekday()]
+
+    days_left = (deadline_date_object - datetime.now()).days + 1
+
+    flag_full_name = False
+
+    full_name_deadline = case = None
+
+    if days_left < 0:
+        return False
+    elif days_left == 0:
+        full_name_deadline = "<u><i>СЕГОДНЯ!!!</i></u>"
+        flag_full_name = True
+    elif days_left == 1:
+        case = "день"
+    elif days_left < 5:
+        case = "дня"
+    else:
+        case = "дней"
+
+    if not flag_full_name:
+        _, month, day = date_input.split("-")
+        full_name_deadline = f"{name_dedline_day} {int(day)} {month_date_dict[int(month)]}\n( Через {days_left} {case} )"
+
+    return full_name_deadline
+
+
+def global_homework_for_user():
+    all_text = ''
+    text_names = ''
+    text_homework = ''
+    try:
+        with open("databases/global_homework.json", "r", encoding="utf-8") as show_global_homework_file:
+            all_global_homework = json.load(show_global_homework_file)
+
+        for name_lesson in all_global_homework:
+            text_names += f"<u>{name_lesson}:</u>\n"
+            for homework_n_deadlines in all_global_homework[name_lesson]:
+                text_homework += f'<blockquote><b><i>Задание</i></b>:\n{homework_n_deadlines["homework"]}\n\n'
+
+                deadline_date = homework_n_deadlines["deadline"]
+                full_name_deadline = deadline_name(deadline_date)
+
+                if not full_name_deadline:
+                    text_homework = ""
+                    auto_global_del(name_lesson, homework_n_deadlines["homework"])
+                    continue
+                else:
+                    text_homework += f'<b><i>Дедлайн</i></b>:\n{full_name_deadline}</blockquote>\n'
+
+            if text_homework != '':
+                all_text += text_names
+                all_text += text_homework
+                text_names = text_homework = ''
+                all_text += '\n'
+            else:
+                text_names = ''
+
+        if all_text != '':
+            return all_text
+        else:
+            text = "<i><u>Глобальное домашнее задание ещё не было добавлено(</u></i>"
+            return text
+
+    except FileNotFoundError:
+        text = "<i><u>Глобальное домашнее задание ещё не было добавлено(</u></i>"
+        return text

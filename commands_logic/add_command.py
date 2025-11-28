@@ -35,15 +35,20 @@ def add_lessons_keyboard():
             keyboard.add(create_lesson_button(name_lesson, type_lesson))
     return keyboard
 
-def add_homework(text):
-    with open('databases/schedule.json', "r", encoding="utf-8") as add_homework_file:
-        current_schedule_and_homework = json.load(add_homework_file)
+def add_homework(text, global_homework=False):
+    if not global_homework:
+        with open('databases/schedule.json', "r", encoding="utf-8") as add_homework_file:
+            current_schedule_and_homework = json.load(add_homework_file)
 
-    for lesson_dict in current_schedule_and_homework[homework_to_date]:
-        for name_lesson in lesson_dict:
-            if homework_to_lesson_name in name_lesson and lesson_dict[name_lesson][
-                "type"] == homework_to_lesson_type:
-                lesson_dict[name_lesson]["homework"] = text
+        for lesson_dict in current_schedule_and_homework[homework_to_date]:
+            for name_lesson in lesson_dict:
+                if homework_to_lesson_name in name_lesson and lesson_dict[name_lesson][
+                    "type"] == homework_to_lesson_type:
+                    lesson_dict[name_lesson]["homework"] = text
 
-    with open("databases/schedule.json", "w", encoding="utf-8") as add_homework_file:
-        json.dump(current_schedule_and_homework, add_homework_file, ensure_ascii=False, indent=4)
+        with open("databases/schedule.json", "w", encoding="utf-8") as add_homework_file:
+            json.dump(current_schedule_and_homework, add_homework_file, ensure_ascii=False, indent=4)
+    else:
+        from commands_logic.global_command import add_func_for_global_homework
+        add_func_for_global_homework(text)
+        return

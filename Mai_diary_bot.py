@@ -23,19 +23,21 @@ from helpers_libs.parsing_script import falling_process
 from helpers_libs.user_date_operations import data_load, data_update, update_values
 from helpers_libs.weeks_operations import current_date_valid, date_decrease, date_increase, start_of_the_week, \
     create_week_list
-from commands_logic.global_command import next_panel, prev_panel
+from commands_logic.global_command import next_panel, prev_panel, global_homework_for_user
 from commands_logic.add_command import add_lessons_keyboard, add_homework
 from commands_logic.delete_commands import delete_prev, delete_input
 
-token = 'Токен телеграм бота'
+token = '8242607343:AAFw_2O5UfJBxBnZe5YquaZ38_rY_4Uhah0'
 bot = telebot.TeleBot(token)
 
 commands = [BotCommand("/start", "Начать"),
-            BotCommand("/help", "( Краткое описание доступных команд )"),
+            BotCommand("/help", "Краткое описание доступных команд"),
+            BotCommand("/global", "Просмотр глобального ДЗ"),
+            BotCommand("/add_global", "( Доступно только старосте )"),
             BotCommand("/add", "( Доступно только старосте )"),
-            BotCommand("/cancel", "( Доступно только старосте )"),
             BotCommand("/del_prev", "( Доступно только старосте )"),
-            BotCommand("/del", "( Доступно только старосте )")]
+            BotCommand("/del", "( Доступно только старосте )"),
+            BotCommand("/cancel", "( Доступно только старосте )")]
 bot.set_my_commands(commands)
 
 hello_text = tw.fill(tw.dedent("Вас приветствует электронный дневник студента МАИ!").strip(), width=28,
@@ -56,7 +58,7 @@ name_of_day_accusative_case = {0: "понедельник", 1: "вторник",
 
 subprocess.run([sys.executable, 'helpers_libs/parsing_script.py'])
 
-admin_list = {"Begemot_anatoliy"}
+admin_list = {"Begemot_anatoliy", "Tketg"}
 
 bot_global_message_id = None
 
@@ -65,7 +67,6 @@ button_for_right_week = types.InlineKeyboardButton(text="➡️", callback_data=
 button_for_current_week = types.InlineKeyboardButton(text="🏠", callback_data="current_week")
 button_back = types.InlineKeyboardButton(text='Вернуться назад', callback_data='back')
 
-global_dedline = None
 global_homework_state = False
 
 homework_state = False
@@ -78,6 +79,8 @@ def help_command(message):
         bot.send_message(message.chat.id,
                          "<b><i>Список команд и их функционал</i></b>:\n\n"
                          "<i>/start - Вывод расписания вместе с домашним заданием на конкретную неделю\n\n"
+                         "/global - Вывод глобального домашнего задания с указанием дедлайнов\n\n"
+                         "/add_global - Добавление глобального домашнего задания\n\n"
                          "/add - Добавление домашнего задания к выбранному дню\n\n"
                          "/cancel - Отмена ввода домашнего задания\n\n"
                          "/del - Удаление домашнего задания на выбранный день\n\n"
@@ -86,7 +89,8 @@ def help_command(message):
     else:
         bot.send_message(message.chat.id,
                          "<b><i>Список команд и их функционал</i></b>:\n\n"
-                         "<i>/start - Вывод расписания вместе с домашним заданием на конкретную неделю</i>",
+                         "<i>/start - Вывод расписания вместе с прикрепленным домашним заданием на конкретную неделю\n\n"
+                         "/global - Вывод глобальных задания с указанием дедлайнов</i>",
                          parse_mode="HTML")
     return
 
@@ -101,17 +105,27 @@ def create_start_panel_date(message):
 
 
 def create_start_panel_lessons(message):
+    global bot_global_message_id
     keyboard = gc.create_start_panel()
-    bot.send_message(message.chat.id, "<i>Выберите предмет для указания глобального домашнего задания</i>",
-                     parse_mode="HTML", reply_markup=keyboard)
+    bot_message = bot.send_message(message.chat.id,
+                                   "<i>Выберите предмет для указания глобального домашнего задания</i>",
+                                   parse_mode="HTML", reply_markup=keyboard)
+    bot_global_message_id = bot_message.message_id
+    bot.register_next_step_handler(message, check_message)
 
 
 @bot.message_handler(commands=["del"])
 def delete_choise_homework(message):
     global delete_or_add_state
     delete_or_add_state = True
-    admin_panel(message, delete=True)
+    admin_panel(message)
     return
+
+
+@bot.message_handler(commands=["global"])
+def show_globals(message):
+    text = global_homework_for_user()
+    bot.send_message(message.chat.id, text, parse_mode="HTML")
 
 
 @bot.message_handler(commands=["del_prev"])
@@ -127,8 +141,9 @@ def delete_prev_homework(message):
 
 
 @bot.message_handler(commands=["add"])
-def admin_panel(message, delete=False):
-    if not delete:
+def admin_panel(message):
+    global delete_or_add_state
+    if not delete_or_add_state:
         global homework_state
         homework_state = True
 
@@ -144,7 +159,6 @@ def admin_panel_quit(message):
 
 
 def check_message(message):
-    global homework_state
     if check_other_command(message, edit=True):
         bot.edit_message_text("<i>Ввод прерван</i>", chat_id=message.chat.id,
                               message_id=bot_global_message_id,
@@ -155,11 +169,12 @@ def check_message(message):
 
 
 def check_other_command(message, edit=False):
-    global homework_state, global_homework_state
+    global homework_state, global_homework_state, delete_or_add_state
     message_from_user = message.text
     if message_from_user.startswith("/"):
         homework_state = False
         global_homework_state = False
+        delete_or_add_state = False
         bot.clear_step_handler_by_chat_id(message.chat.id)
         ac.homework_to_date, ac.homework_to_lesson_name, ac.homework_to_lesson_type = None, None, None
 
@@ -167,7 +182,7 @@ def check_other_command(message, edit=False):
             start_hello_message(message)
             return True
 
-        if message_from_user == "/start":
+        elif message_from_user == "/start":
             admin_panel_quit(message)
             start_hello_message(message)
             return True
@@ -206,11 +221,37 @@ def check_other_command(message, edit=False):
             delete_prev_homework(message)
             return True
 
-    return None
+        elif message_from_user == '/global' and edit:
+            show_globals(message)
+            return True
+
+        elif message_from_user == '/global':
+            admin_panel_quit(message)
+            show_globals(message)
+            return True
+
+        elif message_from_user == '/add_global' and edit:
+            create_start_panel_date(message)
+            return True
+
+        elif message_from_user == '/add_global':
+            admin_panel_quit(message)
+            create_start_panel_date(message)
+            return True
+
+        elif message_from_user == '/help' and edit:
+            help_command(message)
+            return True
+
+        elif message_from_user == '/help':
+            admin_panel_quit(message)
+            help_command(message)
+            return True
+
+    return False
 
 
 def group_num(message, another_check=False):
-    global global_dedline
     if check_other_command(message):
         return
 
@@ -224,15 +265,24 @@ def group_num(message, another_check=False):
             return
         else:
             correct_write_date = f"{year}-{str(month).rjust(2, '0')}-{str(day).rjust(2, '0')}"
+
+            if another_check:
+                if datetime(year, month, day) < datetime.now():
+                    bot.send_message(message.chat.id,
+                                     "<i><u>Дата дедлайна глобального ДЗ не может быть раньше сегодняшней. Попробуйте ещё раз</u></i>",
+                                     parse_mode="HTML")
+                    bot.register_next_step_handler(message, group_num, another_check=another_check)
+                    return
+                else:
+                    gc.global_dedline = correct_write_date
+                    create_start_panel_lessons(message)
+                    return
+
             with open("databases/schedule.json", "r", encoding="utf-8") as schedule_file:
                 valid = True if correct_write_date in json.load(schedule_file) else False
             if valid:
-                if another_check:
-                    global_dedline = correct_write_date
-                    create_start_panel_lessons(message)
-                else:
-                    ac.homework_to_date = correct_write_date
-                    choise_lesson(message)
+                ac.homework_to_date = correct_write_date
+                choise_lesson(message)
                 return
             else:
                 bot.send_message(message.chat.id,
@@ -248,7 +298,7 @@ def group_num(message, another_check=False):
 
 
 def choise_lesson(message):
-    global bot_global_message_id
+    global bot_global_message_id, delete_or_add_state
     keyboard = add_lessons_keyboard()
 
     if not delete_or_add_state:
@@ -263,13 +313,18 @@ def choise_lesson(message):
     bot.register_next_step_handler(message, check_message)
 
 
-def homework_from_admin(message):
+def homework_from_admin(message, global_homework=False):
+    global global_homework_state, homework_state
     if check_other_command(message):
         return
 
-    add_homework(message.text)
-
-    bot.send_message(message.chat.id, "<i>Домашнее задание успешно добавлено</i>", parse_mode="HTML")
+    add_homework(message.text, global_homework=global_homework)
+    global_homework_state = False
+    homework_state = False
+    if not global_homework:
+        bot.send_message(message.chat.id, "<i>Домашнее задание успешно добавлено</i>", parse_mode="HTML")
+    else:
+        bot.send_message(message.chat.id, "<i>Глобальное домашнее задание успешно добавлено</i>", parse_mode="HTML")
     return
 
 
@@ -384,45 +439,60 @@ def week_buttons(call):
         repeat_hello_message(call)
         return
 
+    elif global_homework_state and call.data == "left":
+        keyboard = prev_panel()
+        bot.edit_message_text("<i>Выберите предмет для указания глобального домашнего задания</i>",
+                              chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              reply_markup=keyboard, parse_mode='HTML')
+
+    elif global_homework_state and call.data == "right":
+        keyboard = next_panel()
+        bot.edit_message_text("<i>Выберите предмет для указания глобального домашнего задания</i>",
+                              chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              reply_markup=keyboard, parse_mode='HTML')
+    elif "global" in call.data and global_homework_state:
+        bot.clear_step_handler_by_chat_id(call.message.chat.id)
+        name_call_data = call.data
+        short_name_call_data = name_call_data[:name_call_data.find("global") - 1]
+
+        for full_name in gc.short_name_of_lessons:
+            if gc.short_name_of_lessons[full_name] == short_name_call_data:
+                ac.homework_to_lesson_name = full_name
+                break
+
+        bot.send_message(call.message.chat.id, "<i>Введите глобальное домашнее задание</i>", parse_mode="HTML")
+        bot.register_next_step_handler(call.message, homework_from_admin, global_homework=True)
+        return
+
     else:
+        bot.clear_step_handler_by_chat_id(call.message.chat.id)
+        short_name_call_data, ac.homework_to_lesson_type = call.data.split("-")
+
+        for full_name in gc.short_name_of_lessons:
+            if gc.short_name_of_lessons[full_name] == short_name_call_data:
+                ac.homework_to_lesson_name = full_name
+                break
+
         if homework_state:
-            bot.clear_step_handler_by_chat_id(call.message.chat.id)
-            short_name_call_data, ac.homework_to_lesson_type = call.data.split("-")
+            bot.send_message(call.message.chat.id, "<i>Введите домашнее задание</i>", parse_mode="HTML")
+            bot.register_next_step_handler(call.message, homework_from_admin, global_homework=False)
+            return
 
-            for full_name in gc.short_name_of_lessons:
-                if gc.short_name_of_lessons[full_name] == short_name_call_data:
-                    ac.homework_to_lesson_name = full_name
-                    break
+        elif delete_or_add_state:
 
-            if not delete_or_add_state:
-                bot.send_message(call.message.chat.id, "<i>Введите домашнее задание</i>", parse_mode="HTML")
-                bot.register_next_step_handler(call.message, homework_from_admin)
-                return
-            else:
-                flag = delete_input()
-                if not flag:
-                    bot.send_message(call.message.chat.id,
-                                     "<i><u>Домашнее задание на выбранное занятие ещё не добавлено</u></i>",
-                                     parse_mode="HTML")
-                    return
-
-                ac.homework_to_date, ac.homework_to_lesson_name, ac.homework_to_lesson_type = None, None, None
-                delete_or_add_state = False
-
-                bot.send_message(call.message.chat.id, "<i>Домашнее задание успешно удалено</i>", parse_mode="HTML")
+            flag = delete_input()
+            if not flag:
+                bot.send_message(call.message.chat.id,
+                                 "<i><u>Домашнее задание на выбранное занятие ещё не добавлено</u></i>",
+                                 parse_mode="HTML")
                 return
 
-        elif global_homework_state and call.data == "left":
-            keyboard = prev_panel()
-            bot.edit_message_text("<i>Выберите предмет для указания глобального домашнего задания</i>",
-                                  chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=keyboard, parse_mode='HTML')
+            ac.homework_to_date, ac.homework_to_lesson_name, ac.homework_to_lesson_type = None, None, None
+            delete_or_add_state = False
 
-        elif global_homework_state and call.data == "right":
-            keyboard = next_panel()
-            bot.edit_message_text("<i>Выберите предмет для указания глобального домашнего задания</i>",
-                                  chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=keyboard, parse_mode='HTML')
+            bot.send_message(call.message.chat.id, "<i>Домашнее задание успешно удалено</i>", parse_mode="HTML")
+            return
+
 
 
 bot.infinity_polling()

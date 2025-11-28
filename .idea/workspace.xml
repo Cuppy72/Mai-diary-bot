@@ -5,12 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ec7f5866-9ae3-4c3f-b614-3b98f6c0570f" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/commands_logic/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/commands_logic/global_command.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/helpers_libs/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/helpers_libs/user_date_operations.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parsing_script.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Дневник студента МАИ.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Mai_diary_bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/Mai_diary_bot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands_logic/add_command.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands_logic/add_command.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands_logic/global_command.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands_logic/global_command.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/databases/schedule.json" beforeDir="false" afterPath="$PROJECT_DIR$/databases/schedule.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/databases/user_data.json" beforeDir="false" afterPath="$PROJECT_DIR$/databases/user_data.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,9 +44,11 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.Mai_diary_bot.executor": "Run",
     "Python.d.executor": "Run",
+    "Python.global_command.executor": "Run",
     "Python.globals_homework.executor": "Run",
     "Python.parsing_script.executor": "Run",
     "Python.test.executor": "Run",
+    "Python.test2 (1).executor": "Debug",
     "Python.test2.executor": "Run",
     "Python.user_date_operations.executor": "Run",
     "Python.Дневник студента МАИ.executor": "Run",
@@ -69,28 +71,6 @@
     </key>
   </component>
   <component name="RunManager" selected="Python.Mai_diary_bot">
-    <configuration name="Дневник студента МАИ" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Mai-diary-bot" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Дневник студента МАИ.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="Mai_diary_bot" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Mai-diary-bot" />
       <option name="ENV_FILES" value="" />
@@ -113,7 +93,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="globals_homework" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="global_command" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Mai-diary-bot" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -122,11 +102,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/commands_logic" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/globals_homework.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/commands_logic/global_command.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -135,7 +115,29 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="parsing_script" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="test2 (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Mai-diary-bot" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/commands_logic" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/commands_logic/test2.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="test2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Mai-diary-bot" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -148,7 +150,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/parsing_script.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test2.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -182,10 +184,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.Mai_diary_bot" />
+        <item itemvalue="Python.test2 (1)" />
+        <item itemvalue="Python.global_command" />
+        <item itemvalue="Python.test2" />
         <item itemvalue="Python.user_date_operations" />
-        <item itemvalue="Python.Дневник студента МАИ" />
-        <item itemvalue="Python.globals_homework" />
-        <item itemvalue="Python.parsing_script" />
       </list>
     </recent_temporary>
   </component>
@@ -219,6 +221,33 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/commands_logic/test2.py</url>
+          <line>6</line>
+          <option name="timeStamp" value="22" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/commands_logic/global_command.py</url>
+          <line>204</line>
+          <option name="timeStamp" value="25" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Mai_diary_bot.py</url>
+          <line>375</line>
+          <option name="timeStamp" value="31" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Mai_diary_bot.py</url>
+          <line>102</line>
+          <option name="timeStamp" value="33" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Mai_diary_bot.py</url>
+          <line>173</line>
+          <option name="timeStamp" value="34" />
+        </line-breakpoint>
+      </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
           <properties notifyOnTerminate="true" exception="BaseException">
