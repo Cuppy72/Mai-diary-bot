@@ -58,7 +58,7 @@ name_of_day_accusative_case = {0: "понедельник", 1: "вторник",
 
 subprocess.run([sys.executable, 'helpers_libs/parsing_script.py'])
 
-admin_list = {"Begemot_anatoliy", "Tketg"}
+admin_list = {"Begemot_anatoliy"}
 
 bot_global_message_id = 0
 
@@ -142,7 +142,6 @@ def delete_prev_homework(message):
 
 @bot.message_handler(commands=["add"])
 def admin_panel(message):
-    global delete_or_add_state
     if not delete_or_add_state:
         global homework_state
         homework_state = True
@@ -484,7 +483,8 @@ def week_buttons(call):
                 ac.homework_to_lesson_name = full_name
                 break
 
-        bot.send_message(call.message.chat.id, "<i>Введите глобальное домашнее задание</i>", parse_mode="HTML")
+        bot.edit_message_text("<i>Введите глобальное домашнее задание</i>", chat_id=call.message.chat.id,
+                              message_id=bot_global_message_id, parse_mode="HTML")
         bot.register_next_step_handler(call.message, homework_from_admin, global_homework=True)
         return
 
@@ -498,7 +498,8 @@ def week_buttons(call):
                 break
 
         if homework_state:
-            bot.send_message(call.message.chat.id, "<i>Введите домашнее задание</i>", parse_mode="HTML")
+            bot.edit_message_text("<i>Введите домашнее задание</i>", chat_id=call.message.chat.id,
+                                  message_id=bot_global_message_id, parse_mode="HTML")
             bot.register_next_step_handler(call.message, homework_from_admin, global_homework=False)
             return
 
@@ -514,7 +515,8 @@ def week_buttons(call):
             ac.homework_to_date, ac.homework_to_lesson_name, ac.homework_to_lesson_type = None, None, None
             delete_or_add_state = False
 
-            bot.send_message(call.message.chat.id, "<i>Домашнее задание успешно удалено</i>", parse_mode="HTML")
+            bot.edit_message_text("<i>Домашнее задание успешно удалено</i>", chat_id=call.message.chat.id,
+                                  message_id=bot_global_message_id, parse_mode="HTML")
             return
 
 

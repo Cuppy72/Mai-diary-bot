@@ -7,6 +7,8 @@
     <list default="true" id="ec7f5866-9ae3-4c3f-b614-3b98f6c0570f" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Mai_diary_bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/Mai_diary_bot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/databases/global_homework.json" beforeDir="false" afterPath="$PROJECT_DIR$/databases/global_homework.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/databases/schedule.json" beforeDir="false" afterPath="$PROJECT_DIR$/databases/schedule.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -227,16 +229,6 @@
           <url>file://$PROJECT_DIR$/commands_logic/global_command.py</url>
           <line>204</line>
           <option name="timeStamp" value="25" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Mai_diary_bot.py</url>
-          <line>102</line>
-          <option name="timeStamp" value="33" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Mai_diary_bot.py</url>
-          <line>173</line>
-          <option name="timeStamp" value="34" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
